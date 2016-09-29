@@ -1,17 +1,12 @@
-FROM ubuntu:14.04
+FROM ubuntu:16.04
 
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
     apt-get install -y \
         python-pip \
-        python-dev
+        python3-pip
 
-RUN apt-get install -y python-numpy python-lxml
-RUN apt-get install -y python3 python3-pip python3-lxml python3-nose
-# chardet version is out of date; old version doesn't detect UTF8 w/ BOM
-RUN pip3 install --upgrade chardet
-RUN apt-get install -y python-nose
 RUN locale-gen en_GB.UTF-8
 
 RUN mkdir /home/messytables && \
