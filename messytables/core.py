@@ -1,14 +1,16 @@
-from messytables.util import OrderedDict
-from collections import Mapping
-from messytables.error import TableError, NoSuchPropertyError
 import io
-from messytables.compat23 import *
+from collections import OrderedDict
+from collections.abc import Mapping
+
+from messytables.compat23 import string_types, unicode_string
+from messytables.error import NoSuchPropertyError, TableError
+
 
 def seekable_stream(fileobj):
     try:
         fileobj.seek(0)
         # if we got here, the stream is seekable
-    except:
+    except Exception:
         # otherwise seek failed, so slurp in stream and wrap
         # it in a BytesIO
         fileobj = BufferedFile(fileobj)
@@ -16,9 +18,10 @@ def seekable_stream(fileobj):
 
 
 class BufferedFile(object):
-    ''' A buffered file that preserves the beginning of
+    """A buffered file that preserves the beginning of
     a stream up to buffer_size
-    '''
+    """
+
     def __init__(self, fp, buffer_size=2048):
         self.data = io.BytesIO()
         self.fp = fp
@@ -42,7 +45,7 @@ class BufferedFile(object):
 
     def readline(self):
         if self.len < self.offset < self.fp_offset:
-            raise BufferError('Line is not available anymore')
+            raise BufferError("Line is not available anymore")
         if self.offset >= self.len:
             line = self._next_line()
             self.fp_offset += len(line)
@@ -65,7 +68,7 @@ class BufferedFile(object):
             return self.data.read(-1) + self.fp.read(-1)
 
         if self.len < self.offset < self.fp_offset:
-            raise BufferError('Data is not available anymore')
+            raise BufferError("Data is not available anymore")
         if self.offset >= self.len:
             byte = self._read(n)
             self.fp_offset += len(byte)
@@ -85,7 +88,7 @@ class BufferedFile(object):
 
     def seek(self, offset):
         if self.len < offset < self.fp_offset:
-            raise BufferError('Cannot seek because data is not buffered here')
+            raise BufferError("Cannot seek because data is not buffered here")
         self.offset = offset
         if offset < self.len:
             self.data.seek(offset)
@@ -96,7 +99,7 @@ class CoreProperties(Mapping):
 
     def __getitem__(self, key):
         if key in self.KEYS:
-            return getattr(self, 'get_' + key)()
+            return getattr(self, "get_" + key)()
         else:
             raise NoSuchPropertyError("%r" % key)
 
@@ -108,14 +111,15 @@ class CoreProperties(Mapping):
 
 
 class Cell(object):
-    """ A cell is the basic value type. It always has a ``value`` (that
+    """A cell is the basic value type. It always has a ``value`` (that
     may be ``None`` and may optionally also have a type and column name
     associated with it. If no ``type`` is set, the String type is set
-    but no type conversion is set. """
+    but no type conversion is set."""
 
     def __init__(self, value, column=None, type=None):
         if type is None:
             from messytables.types import StringType
+
             type = StringType()
         self.value = value
         self.column = column
@@ -124,13 +128,12 @@ class Cell(object):
 
     def __repr__(self):
         if self.column is not None:
-            return "<Cell(%r=%r:%r>" % (self.column,
-                                        self.type, self.value)
+            return "<Cell(%r=%r:%r>" % (self.column, self.type, self.value)
         return "<Cell(%r:%r>" % (self.type, self.value)
 
     @property
     def empty(self):
-        """ Stringify the value and check that it has a length. """
+        """Stringify the value and check that it has a length."""
         if self.value is None:
             return True
         value = self.value
@@ -142,7 +145,7 @@ class Cell(object):
 
     @property
     def properties(self):
-        """ Source-specific information. Only a placeholder here. """
+        """Source-specific information. Only a placeholder here."""
         return CoreProperties()
 
     @property
@@ -159,7 +162,7 @@ class Cell(object):
 
 
 class TableSet(object):
-    """ A table set is used for data formats in which multiple tabular
+    """A table set is used for data formats in which multiple tabular
     objects are bundled. This might include relational databases and
     workbooks used in spreadsheet software (Excel, LibreOffice).
 
@@ -170,23 +173,24 @@ class TableSet(object):
 
     On any fatal errors, it should raise messytables.ReadError
     """
+
     def __init__(self, fileobj):
-        """ Store the fileobj, and perhaps all or part of the file. """
+        """Store the fileobj, and perhaps all or part of the file."""
         pass
 
     @property
     def tables(self):
-        """ Return a listing of tables (i.e. RowSets) in the ``TableSet``.
-        Each table has a name. """
+        """Return a listing of tables (i.e. RowSets) in the ``TableSet``.
+        Each table has a name."""
         if getattr(self, "_tables", None) is None:
             self._tables = self.make_tables()
         return self._tables
 
     def make_tables(self):
-        raise NotImplementedError("make_tables() not implemented on {0}"
-                                  .format(type(self)))
+        raise NotImplementedError("make_tables() not implemented on {0}".format(type(self)))
+
     def __getitem__(self, name):
-        """ Return a RowSet based on the name given """
+        """Return a RowSet based on the name given"""
         matching = [table for table in self.tables if table.name == name]
         if not matching:
             raise TableError("No table called %r" % name)
@@ -196,12 +200,12 @@ class TableSet(object):
 
     @classmethod
     def from_fileobj(cls, fileobj, *args, **kwargs):
-        """ Deprecated, only for compatibility reasons """
+        """Deprecated, only for compatibility reasons"""
         return cls(fileobj, *args, **kwargs)
 
 
 class RowSet(object):
-    """ A row set (aka: table) is a simple wrapper for an iterator of
+    """A row set (aka: table) is a simple wrapper for an iterator of
     rows (which in turn is a list of ``Cell`` objects). The main table
     iterable can only be traversed once, so on order to allow analytics
     like type and header guessing on the data, a sample of ``window``
@@ -225,14 +229,14 @@ class RowSet(object):
     types = property(get_types, set_types)
 
     def register_processor(self, processor):
-        """ Register a stream processor to be used on each row. A
+        """Register a stream processor to be used on each row. A
         processor is a function called with the ``RowSet`` as its
         first argument and the row to be processed as the second
-        argument. """
+        argument."""
         self._processors.append(processor)
 
     def __iter__(self, sample=False):
-        """ Apply processors to the row data. """
+        """Apply processors to the row data."""
         for row in self.raw(sample=sample):
             for processor in self._processors:
                 row = processor(self, row)
@@ -249,10 +253,10 @@ class RowSet(object):
         return self.__iter__(sample=True)
 
     def dicts(self, sample=False):
-        """ Return a representation of the data as an iterator of
+        """Return a representation of the data as an iterator of
         ordered dictionaries. This is less specific than the cell
         format returned by the generic iterator but only gives a
-        subset of the information. """
+        subset of the information."""
         generator = self.sample if sample else self
         for row in generator:
             yield OrderedDict([(c.column, c.value) for c in row])
