@@ -6,10 +6,6 @@ from . import horror_fobj
 from messytables.any import any_tableset
 from messytables.core import RowSet
 from messytables.error import TableError
-try:
-    from nose.tools import assert_is_instance
-except ImportError:
-    from shim26 import assert_is_instance
 
 
 class TestTableSet(unittest.TestCase):
@@ -18,7 +14,7 @@ class TestTableSet(unittest.TestCase):
         self.table_set = any_tableset(fh, extension='xls')
 
     def test_get_item(self):
-        assert_is_instance(self.table_set['simple.csv'], RowSet)
+        assert isinstance(self.table_set['simple.csv'], RowSet)
 
     def test_missing_sheet(self):
         self.assertRaises(TableError, lambda: self.table_set['non-existent'])

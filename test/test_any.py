@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import unittest
+import pytest
 
 from . import horror_fobj
-from nose.tools import assert_equal
-from nose.plugins.skip import SkipTest
 from messytables import (any_tableset, XLSTableSet, ZIPTableSet,
                          CSVTableSet, ODSTableSet,
                          ReadError)
@@ -18,23 +17,19 @@ suite = [{'filename': 'simple.csv', 'tableset': CSVTableSet},
          ]
 
 
-def test_simple():
-    for d in suite:
-        yield check_no_filename, d
-        yield check_filename, d
-
-
-def check_no_filename(d):
+@pytest.mark.parametrize("d", suite)
+def test_no_filename(d):
     if not d['tableset']:
-        raise SkipTest("Optional library not installed. Skipping")
+        pytest.skip("Optional library not installed. Skipping")
     fh = horror_fobj(d['filename'])
     table_set = any_tableset(fh)
     assert isinstance(table_set, d['tableset']), type(table_set)
 
 
-def check_filename(d):
+@pytest.mark.parametrize("d", suite)
+def test_filename(d):
     if not d['tableset']:
-        raise SkipTest("Optional library not installed. Skipping")
+        pytest.skip("Optional library not installed. Skipping")
     fh = horror_fobj(d['filename'])
     table_set = any_tableset(fh, extension=d['filename'], auto_detect=False)
     assert isinstance(table_set, d['tableset']), type(table_set)
@@ -46,7 +41,7 @@ class TestAny(unittest.TestCase):
         table_set = any_tableset(fh, extension='xls')
         row_set = table_set.tables[0]
         data = list(row_set)
-        assert_equal(62, len(data))
+        assert 62 == len(data)
 
     def test_unknown(self):
         fh = horror_fobj('simple.unknown')
@@ -58,11 +53,11 @@ class TestAny(unittest.TestCase):
         table_set = any_tableset(fh)
         row_set = table_set.tables[0]
         data = list(row_set)
-        assert_equal(16, len(data))
+        assert 16 == len(data)
 
     def test_libreoffice_xlsx(self):
         fh = horror_fobj('libreoffice.xlsx')
         table_set = any_tableset(fh)
         row_set = table_set.tables[0]
         data = list(row_set)
-        assert_equal(0, len(data))
+        assert 0 == len(data)

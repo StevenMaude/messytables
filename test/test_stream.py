@@ -5,7 +5,6 @@ import requests
 import io
 
 from . import horror_fobj
-from nose.tools import assert_equal
 import httpretty
 
 from messytables import CSVTableSet, XLSTableSet
@@ -22,7 +21,7 @@ class StreamInputTest(unittest.TestCase):
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         data = list(row_set)
-        assert_equal(4000, len(data))
+        assert 4000 == len(data)
 
     @httpretty.activate
     def test_http_csv_requests(self):
@@ -37,7 +36,7 @@ class StreamInputTest(unittest.TestCase):
         table_set = CSVTableSet(fh, encoding='utf-8')
         row_set = table_set.tables[0]
         data = list(row_set)
-        assert_equal(4000, len(data))
+        assert 4000 == len(data)
 
     @httpretty.activate
     def test_http_csv_encoding(self):
@@ -50,7 +49,7 @@ class StreamInputTest(unittest.TestCase):
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         data = list(row_set)
-        assert_equal(328, len(data))
+        assert 328 == len(data)
 
     @httpretty.activate
     def test_http_xls(self):
@@ -63,7 +62,7 @@ class StreamInputTest(unittest.TestCase):
         table_set = XLSTableSet(fh)
         row_set = table_set.tables[0]
         data = list(row_set)
-        assert_equal(7, len(data))
+        assert 7 == len(data)
 
     @httpretty.activate
     def test_http_xlsx(self):
@@ -76,4 +75,4 @@ class StreamInputTest(unittest.TestCase):
         table_set = XLSTableSet(fh)
         row_set = table_set.tables[0]
         data = list(row_set)
-        assert_equal(7, len(data))
+        assert 7 == len(data)
