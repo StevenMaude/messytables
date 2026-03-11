@@ -1,53 +1,68 @@
 # -*- coding: utf-8 -*-
+import datetime
 import unittest
+from decimal import Decimal
+
 import pytest
 
-from decimal import Decimal
+from messytables import (
+    BoolType,
+    CSVTableSet,
+    DateType,
+    FloatType,
+    HTMLTableSet,
+    IntegerType,
+    ODSTableSet,
+    ReadError,
+    StringType,
+    XLSTableSet,
+    XLSXTableSet,
+    ZIPTableSet,
+    headers_guess,
+    headers_processor,
+    null_processor,
+    offset_processor,
+    rowset_as_jts,
+    type_guess,
+    types_processor,
+)
+
 from . import horror_fobj
 
-
-from messytables import (CSVTableSet, StringType, HTMLTableSet,
-                         ZIPTableSet, XLSTableSet, XLSXTableSet,
-                         ODSTableSet, headers_guess, headers_processor,
-                         offset_processor, DateType, FloatType,
-                         IntegerType, BoolType, rowset_as_jts,
-                         types_processor, type_guess, ReadError,
-                         null_processor)
-import datetime
-stringy = type(u'')
+stringy = type("")
 
 
 class ReadCsvTest(unittest.TestCase):
     def test_utf8bom_lost(self):
-        fh = horror_fobj('utf8bom.csv')
+        fh = horror_fobj("utf8bom.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         row = list(row_set)[0]
         assert row[0].value == "kitten"
 
     def test_read_simple_csv(self):
-        fh = horror_fobj('simple.csv')
+        fh = horror_fobj("simple.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         assert 7 == len(list(row_set))
         row = list(row_set.sample)[0]
-        assert row[0].value == 'date'
-        assert row[1].value == 'temperature'
+        assert row[0].value == "date"
+        assert row[1].value == "temperature"
 
         for row in list(row_set):
             assert 3 == len(row)
             assert row[0].type == StringType()
 
     def test_read_complex_csv(self):
-        fh = horror_fobj('complex.csv')
+        fh = horror_fobj("complex.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         assert 4 == len(list(row_set))
         row = list(row_set.sample)[0]
-        assert row[0].value == 'date'
-        assert row[1].value == 'another date'
-        assert row[2].value == 'temperature'
-        assert row[3].value == 'place'
+        assert row[0].value == "date"
+        assert row[1].value == "another date"
+        assert row[2].value == "temperature"
+        assert row[3].value == "place"
 
         for row in list(row_set):
             assert 4 == len(row)
@@ -55,7 +70,7 @@ class ReadCsvTest(unittest.TestCase):
 
     def test_overriding_sniffed(self):
         # semicolon separated values
-        fh = horror_fobj('simple.csv')
+        fh = horror_fobj("simple.csv")
         table_set = CSVTableSet(fh, delimiter=";")
         row_set = table_set.tables[0]
         assert 7 == len(list(row_set))
@@ -63,22 +78,22 @@ class ReadCsvTest(unittest.TestCase):
         assert len(row) == 1
 
     def test_read_head_padding_csv(self):
-        fh = horror_fobj('weird_head_padding.csv')
+        fh = horror_fobj("weird_head_padding.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         offset, headers = headers_guess(row_set.sample)
         assert 11 == len(headers), headers
-        assert '1985' == headers[1].strip()
+        assert "1985" == headers[1].strip()
         row_set.register_processor(headers_processor(headers))
         row_set.register_processor(offset_processor(offset + 1))
         data = list(row_set.sample)
         for row in row_set:
             assert 11 == len(row)
         value = data[1][0].value.strip()
-        assert value == u'Gefäßchirurgie', value
+        assert value == "Gefäßchirurgie", value
 
     def test_read_head_offset_csv(self):
-        fh = horror_fobj('simple.csv')
+        fh = horror_fobj("simple.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         offset, headers = headers_guess(row_set.sample)
@@ -91,7 +106,7 @@ class ReadCsvTest(unittest.TestCase):
 
     @pytest.mark.slow
     def test_read_type_guess_simple(self):
-        fh = horror_fobj('simple.csv')
+        fh = horror_fobj("simple.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         types = type_guess(row_set.sample)
@@ -106,12 +121,11 @@ class ReadCsvTest(unittest.TestCase):
         assert expected_types == row_types
 
     def test_apply_null_values(self):
-        fh = horror_fobj('null.csv')
+        fh = horror_fobj("null.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         types = type_guess(row_set.sample, strict=True)
-        expected_types = [IntegerType(), StringType(), BoolType(),
-                          StringType()]
+        expected_types = [IntegerType(), StringType(), BoolType(), StringType()]
         assert types == expected_types
 
         row_set.register_processor(types_processor(types))
@@ -128,10 +142,10 @@ class ReadCsvTest(unittest.TestCase):
         assert [x.value for x in data[2]] == [3, "null", None, ""], data[2]
 
     def test_null_process(self):
-        fh = horror_fobj('null.csv')
+        fh = horror_fobj("null.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
-        row_set.register_processor(null_processor(['null']))
+        row_set.register_processor(null_processor(["null"]))
         data = list(row_set)
 
         nones = [[x.value is None for x in row] for row in data]
@@ -140,8 +154,7 @@ class ReadCsvTest(unittest.TestCase):
         assert nones[2] == [False, True, False, False]
 
         types = type_guess(row_set.sample, strict=True)
-        expected_types = [IntegerType(), BoolType(), BoolType(),
-                          BoolType()]
+        expected_types = [IntegerType(), BoolType(), BoolType(), BoolType()]
         assert types == expected_types
 
         row_set.register_processor(types_processor(types))
@@ -154,22 +167,22 @@ class ReadCsvTest(unittest.TestCase):
         assert nones[2] == [False, True, True, True]
 
     def test_read_encoded_csv(self):
-        fh = horror_fobj('utf-16le_encoded.csv')
+        fh = horror_fobj("utf-16le_encoded.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         assert 328 == len(list(row_set))
         row = list(row_set.sample)[0]
-        assert row[1].value == 'Organisation_name'
+        assert row[1].value == "Organisation_name"
 
     def test_long_csv(self):
-        fh = horror_fobj('long.csv')
+        fh = horror_fobj("long.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         data = list(row_set)
         assert 4000 == len(data)
 
     def test_small_csv(self):
-        fh = horror_fobj('small.csv')
+        fh = horror_fobj("small.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         data = list(row_set)
@@ -177,9 +190,8 @@ class ReadCsvTest(unittest.TestCase):
 
     def test_skip_initials(self):
         def rows(skip_policy):
-            fh = horror_fobj('skip_initials.csv')
-            table_set = CSVTableSet(fh,
-                                    skipinitialspace=skip_policy)
+            fh = horror_fobj("skip_initials.csv")
+            table_set = CSVTableSet(fh, skipinitialspace=skip_policy)
             row_set = table_set.tables[0]
             return row_set
 
@@ -190,25 +202,25 @@ class ReadCsvTest(unittest.TestCase):
         assert "    goodbye" in list(map(second, rows(False)))
 
     def test_guess_headers(self):
-        fh = horror_fobj('weird_head_padding.csv')
+        fh = horror_fobj("weird_head_padding.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         offset, headers = headers_guess(row_set.sample)
         row_set.register_processor(headers_processor(headers))
         row_set.register_processor(offset_processor(offset + 1))
         data = list(row_set)
-        assert 'Frauenheilkunde' in data[9][0].value, data[9][0].value
+        assert "Frauenheilkunde" in data[9][0].value, data[9][0].value
 
-        fh = horror_fobj('weird_head_padding.csv')
+        fh = horror_fobj("weird_head_padding.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
-        row_set.register_processor(headers_processor(['foo', 'bar']))
+        row_set.register_processor(headers_processor(["foo", "bar"]))
         data = list(row_set)
-        assert 'foo' in data[12][0].column, data[12][0]
-        assert 'Chirurgie' in data[12][0].value, data[12][0].value
+        assert "foo" in data[12][0].column, data[12][0]
+        assert "Chirurgie" in data[12][0].value, data[12][0].value
 
     def test_read_encoded_characters_csv(self):
-        fh = horror_fobj('characters.csv')
+        fh = horror_fobj("characters.csv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         offset, headers = headers_guess(row_set.sample)
@@ -216,19 +228,19 @@ class ReadCsvTest(unittest.TestCase):
         row_set.register_processor(offset_processor(offset + 1))
         data = list(row_set)
         assert 382 == len(data)
-        assert data[0][2].value == u'雲嘉南濱海國家風景區管理處'
-        assert data[-1][2].value == u'沈光文紀念廳'
+        assert data[0][2].value == "雲嘉南濱海國家風景區管理處"
+        assert data[-1][2].value == "沈光文紀念廳"
 
 
 class ReadZipTest(unittest.TestCase):
     def test_read_simple_zip(self):
-        fh = horror_fobj('simple.zip')
+        fh = horror_fobj("simple.zip")
         table_set = ZIPTableSet(fh)
         row_set = table_set.tables[0]
         assert 7 == len(list(row_set))
         row = list(row_set.sample)[0]
-        assert row[0].value == 'date'
-        assert row[1].value == 'temperature'
+        assert row[0].value == "date"
+        assert row[1].value == "temperature"
 
         for row in list(row_set):
             assert 3 == len(row)
@@ -237,13 +249,13 @@ class ReadZipTest(unittest.TestCase):
 
 class ReadTsvTest(unittest.TestCase):
     def test_read_simple_tsv(self):
-        fh = horror_fobj('example.tsv')
+        fh = horror_fobj("example.tsv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         assert 141 == len(list(row_set))
         row = list(row_set.sample)[0]
-        assert row[0].value == 'hour'
-        assert row[1].value == 'expr1_0_imp'
+        assert row[0].value == "hour"
+        assert row[1].value == "expr1_0_imp"
         for row in list(row_set):
             assert 17 == len(row)
             assert row[0].type == StringType()
@@ -252,13 +264,13 @@ class ReadTsvTest(unittest.TestCase):
 class ReadSsvTest(unittest.TestCase):
     def test_read_simple_ssv(self):
         # semicolon separated values
-        fh = horror_fobj('simple.ssv')
+        fh = horror_fobj("simple.ssv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         assert 7 == len(list(row_set))
         row = list(row_set.sample)[0]
-        assert row[0].value == 'date'
-        assert row[1].value == 'temperature'
+        assert row[0].value == "date"
+        assert row[1].value == "temperature"
 
         for row in list(row_set):
             assert 3 == len(row)
@@ -268,13 +280,13 @@ class ReadSsvTest(unittest.TestCase):
 class ReadPsvTest(unittest.TestCase):
     def test_read_simple_psv(self):
         # pipe/vertical bar ("|") separated values
-        fh = horror_fobj('simple.psv')
+        fh = horror_fobj("simple.psv")
         table_set = CSVTableSet(fh)
         row_set = table_set.tables[0]
         assert 29 == len(list(row_set))
         row = list(row_set.sample)[0]
-        assert row[0].value == 'Year'
-        assert row[1].value == 'New dwellings'
+        assert row[0].value == "Year"
+        assert row[1].value == "New dwellings"
 
         for row in list(row_set):
             assert 6 == len(row)
@@ -283,14 +295,14 @@ class ReadPsvTest(unittest.TestCase):
 
 class ReadODSTest(unittest.TestCase):
     def test_read_simple_ods(self):
-        fh = horror_fobj('simple.ods')
+        fh = horror_fobj("simple.ods")
         table_set = ODSTableSet(fh)
         assert 1 == len(table_set.tables)
         row_set = table_set.tables[0]
         row = list(row_set.sample)[0]
-        assert row[0].value == 'Name'
-        assert row[1].value == 'Age'
-        assert row[2].value == 'When'
+        assert row[0].value == "Name"
+        assert row[1].value == "Age"
+        assert row[2].value == "When"
         total = 4
         for row in row_set.sample:
             total = total - 1
@@ -299,7 +311,7 @@ class ReadODSTest(unittest.TestCase):
 
     @pytest.mark.slow
     def test_read_large_ods(self):
-        fh = horror_fobj('large.ods')
+        fh = horror_fobj("large.ods")
         table_set = ODSTableSet(fh)
         assert 6 == len(table_set.tables)
         row_set = table_set.tables[0]
@@ -309,29 +321,29 @@ class ReadODSTest(unittest.TestCase):
             assert len(row) == 16384, len(row)
 
     def test_ods_version_4412(self):
-        fh = horror_fobj('loffice-4.4.1.2.ods')
+        fh = horror_fobj("loffice-4.4.1.2.ods")
         table_set = ODSTableSet(fh)
         assert 1 == len(table_set.tables)
         row_set = table_set.tables[0]
         rows = row_set_to_rows(row_set)
-        assert rows[0][0] == 'Name'
-        assert rows[1][0] == 'Bob'
-        assert rows[2][0] == 'Jane'
-        assert rows[3][0] == 'Ian'
+        assert rows[0][0] == "Name"
+        assert rows[1][0] == "Bob"
+        assert rows[2][0] == "Jane"
+        assert rows[3][0] == "Ian"
 
     def test_ods_read_past_blank_lines(self):
-        fh = horror_fobj('blank_line.ods')
+        fh = horror_fobj("blank_line.ods")
         table_set = ODSTableSet(fh)
         assert 1 == len(table_set.tables)
         row_set = table_set.tables[0]
         rows = row_set_to_rows(row_set)
-        assert rows[0][0] == 'Name'
-        assert rows[1][0] == 'Bob'
-        assert rows[2][0] == 'Jane'
-        assert rows[3][0] == 'Ian'
+        assert rows[0][0] == "Name"
+        assert rows[1][0] == "Bob"
+        assert rows[2][0] == "Jane"
+        assert rows[3][0] == "Ian"
 
     def test_ods_read_all_supported_formats(self):
-        fh = horror_fobj('ods_formats.ods')
+        fh = horror_fobj("ods_formats.ods")
         table_set = ODSTableSet(fh)
         assert 3 == len(table_set.tables)
         row_set = table_set.tables[0]
@@ -339,40 +351,40 @@ class ReadODSTest(unittest.TestCase):
         assert rows[0][0] == "Date"
         assert rows[1][0] == "2014-11-11"
         assert rows[2][0] == "2001-01-01"
-        assert rows[3][0] == ''
+        assert rows[3][0] == ""
         # time formats
         assert rows[0][1] == "Time"
         assert rows[1][1] == "PT11H12M12S"
         assert rows[2][1] == "PT00H00M12S"
-        assert rows[4][1] == 'PT27H17M54S'
+        assert rows[4][1] == "PT27H17M54S"
         assert rows[5][1] == "Other"
         # boolean
         assert rows[0][2] == "Boolean"
-        assert rows[1][2] == 'true'
-        assert rows[2][2] == 'false'
+        assert rows[1][2] == "true"
+        assert rows[2][2] == "false"
         # Float
         assert rows[0][3] == "Float"
-        assert rows[1][3] == '11.11'
+        assert rows[1][3] == "11.11"
         # Currency
         assert rows[0][4] == "Currency"
-        assert rows[1][4] == '1 GBP'
-        assert rows[2][4] == '-10000 GBP'
+        assert rows[1][4] == "1 GBP"
+        assert rows[2][4] == "-10000 GBP"
         # Percentage
         assert rows[0][5] == "Percentage"
-        assert rows[1][5] == '2'
+        assert rows[1][5] == "2"
         # int
         assert rows[0][6] == "Int"
-        assert rows[1][6] == '3'
-        assert rows[4][6] == '11'
+        assert rows[1][6] == "3"
+        assert rows[4][6] == "11"
         # Scientific value is used but its notation is not
-        assert rows[1][7] == '100000'
+        assert rows[1][7] == "100000"
         # Fraction
-        assert rows[1][8] == '1.25'
+        assert rows[1][8] == "1.25"
         # Text
         assert rows[1][9] == "abc"
 
     def test_ods_read_all_supported_formats_casted(self):
-        fh = horror_fobj('ods_formats.ods')
+        fh = horror_fobj("ods_formats.ods")
         table_set = ODSTableSet(fh)
         assert 3 == len(table_set.tables)
         row_set = table_set.tables[0]
@@ -381,31 +393,29 @@ class ReadODSTest(unittest.TestCase):
         assert rows[0][0] == "Date"
         assert rows[1][0].strftime(date_format) == "11/11/2014"
         assert rows[2][0].strftime(date_format) == "01/01/2001"
-        assert rows[3][0] == ''
+        assert rows[3][0] == ""
         # time formats
         time_format = "%S:%M:%H"
         assert rows[0][1] == "Time"
         assert rows[1][1].strftime(time_format) == "12:12:11"
         assert rows[2][1].strftime(time_format) == "12:00:00"
         assert rows[3][1] == 0
-        assert rows[4][1] == datetime.timedelta(hours=27,
-                                                    minutes=17,
-                                                    seconds=54)
+        assert rows[4][1] == datetime.timedelta(hours=27, minutes=17, seconds=54)
         assert rows[5][1] == "Other"
         # boolean
         assert rows[0][2] == "Boolean"
-        assert rows[1][2] == True
-        assert rows[2][2] == False
+        assert rows[1][2] is True
+        assert rows[2][2] is False
         # Float
         assert rows[0][3] == "Float"
-        assert rows[1][3] == Decimal('11.11')
+        assert rows[1][3] == Decimal("11.11")
         # Currency
         assert rows[0][4] == "Currency"
-        assert rows[1][4] == Decimal('1')
-        assert rows[2][4] == Decimal('-10000')
+        assert rows[1][4] == Decimal("1")
+        assert rows[2][4] == Decimal("-10000")
         # Percentage
         assert rows[0][5] == "Percentage"
-        assert rows[1][5] == Decimal('0.02')
+        assert rows[1][5] == Decimal("0.02")
         # int
         assert rows[0][6] == "Int"
         assert rows[1][6] == 3
@@ -413,16 +423,16 @@ class ReadODSTest(unittest.TestCase):
         # Scientific value is used but its notation is not
         assert rows[1][7] == 100000
         # Fraction
-        assert rows[1][8] == Decimal('1.25')
+        assert rows[1][8] == Decimal("1.25")
         # Text
         assert rows[1][9] == "abc"
 
     def test_ods_read_multi_line_cell(self):
-        fh = horror_fobj('multilineods.ods')
+        fh = horror_fobj("multilineods.ods")
         table_set = ODSTableSet(fh)
         row_set = table_set.tables[0]
         rows = row_set_to_rows(row_set)
-        assert rows[0][0] == '1\n2\n3\n4'
+        assert rows[0][0] == "1\n2\n3\n4"
 
 
 def row_set_to_rows(row_set):
@@ -444,18 +454,19 @@ class XlsxBackwardsCompatibilityTest(unittest.TestCase):
         """
         Should emit a DeprecationWarning.
         """
-        fh = horror_fobj('simple.xlsx')
+        fh = horror_fobj("simple.xlsx")
         assert isinstance(XLSXTableSet(fh), XLSTableSet)
 
 
 class ReadXlsTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.large_xlsx_table_set = XLSTableSet(   # TODO
-            horror_fobj('large.xlsx'))
+        cls.large_xlsx_table_set = XLSTableSet(  # TODO
+            horror_fobj("large.xlsx")
+        )
 
     def test_read_simple_xls(self):
-        fh = horror_fobj('simple.xls')
+        fh = horror_fobj("simple.xls")
         table_set = XLSTableSet(fh)
         assert 1 == len(table_set.tables)
         row_set = table_set.tables[0]
@@ -470,13 +481,13 @@ class ReadXlsTest(unittest.TestCase):
         assert isinstance(third_row[1].value, float)
         assert isinstance(third_row[2].value, stringy)
 
-        assert first_row[0].value == 'date'
-        assert first_row[1].value == 'temperature'
-        assert first_row[2].value == 'place'
+        assert first_row[0].value == "date"
+        assert first_row[1].value == "temperature"
+        assert first_row[2].value == "place"
 
         assert third_row[0].value == datetime.datetime(2011, 1, 2, 0, 0)
         assert third_row[1].value == -1
-        assert third_row[2].value == 'Galway'
+        assert third_row[2].value == "Galway"
 
         for row in list(row_set):
             assert 3 == len(row), row
@@ -484,7 +495,7 @@ class ReadXlsTest(unittest.TestCase):
     # Right now we can't read even passwordless encrypted files - in future
     # would be good to be able to.
     def test_attempt_read_encrypted_no_password_xls(self):
-        fh = horror_fobj('encrypted_no_password.xls')
+        fh = horror_fobj("encrypted_no_password.xls")
         errmsg = "Can't read Excel file: XLRDError('Workbook is encrypted',)"
         try:
             XLSTableSet(fh)
@@ -498,7 +509,7 @@ class ReadXlsTest(unittest.TestCase):
             assert False, "Did not raise Read Error"
 
     def test_read_head_offset_excel(self):
-        fh = horror_fobj('simple.xls')
+        fh = horror_fobj("simple.xls")
         table_set = XLSTableSet(fh)
         row_set = table_set.tables[0]
         offset, headers = headers_guess(row_set.sample)
@@ -510,7 +521,7 @@ class ReadXlsTest(unittest.TestCase):
         assert int(data[0][1].value) == 1
 
     def test_read_simple_xlsx(self):
-        fh = horror_fobj('simple.xlsx')
+        fh = horror_fobj("simple.xlsx")
         table_set = XLSTableSet(fh)
         assert 1 == len(table_set.tables)
         row_set = table_set.tables[0]
@@ -525,19 +536,19 @@ class ReadXlsTest(unittest.TestCase):
         assert isinstance(third_row[1].value, float)
         assert isinstance(third_row[2].value, stringy)
 
-        assert first_row[0].value == 'date'
-        assert first_row[1].value == 'temperature'
-        assert first_row[2].value == 'place'
+        assert first_row[0].value == "date"
+        assert first_row[1].value == "temperature"
+        assert first_row[2].value == "place"
 
         assert third_row[0].value == datetime.datetime(2011, 1, 2, 0, 0)
         assert third_row[1].value == -1.0
-        assert third_row[2].value == 'Galway'
+        assert third_row[2].value == "Galway"
 
         for row in list(row_set):
             assert 3 == len(row), row
 
     def test_large_file_report_sheet_has_11_cols_52_rows(self):
-        table = self.large_xlsx_table_set['Report']
+        table = self.large_xlsx_table_set["Report"]
         num_rows = len(list(table))
         num_cols = len(list(table)[0])
 
@@ -547,7 +558,7 @@ class ReadXlsTest(unittest.TestCase):
         assert num_rows * num_cols == num_cells
 
     def test_large_file_data_sheet_has_11_cols_8547_rows(self):
-        table = self.large_xlsx_table_set['data']
+        table = self.large_xlsx_table_set["data"]
         num_rows = len(list(table))
         num_cols = len(list(table)[0])
 
@@ -557,7 +568,7 @@ class ReadXlsTest(unittest.TestCase):
         assert num_rows * num_cols == num_cells
 
     def test_large_file_criteria_sheet_has_5_cols_12_rows(self):
-        table = self.large_xlsx_table_set['criteria']
+        table = self.large_xlsx_table_set["criteria"]
         num_rows = len(list(table))
         num_cols = len(list(table)[0])
 
@@ -567,7 +578,7 @@ class ReadXlsTest(unittest.TestCase):
         assert num_rows * num_cols == num_cells
 
     def test_read_type_know_simple(self):
-        fh = horror_fobj('simple.xls')
+        fh = horror_fobj("simple.xls")
         table_set = XLSTableSet(fh)
         row_set = table_set.tables[0]
         row = list(row_set.sample)[1]
@@ -576,7 +587,7 @@ class ReadXlsTest(unittest.TestCase):
 
     def test_bad_first_sheet(self):
         # First sheet appears to have no cells
-        fh = horror_fobj('problematic_first_sheet.xls')
+        fh = horror_fobj("problematic_first_sheet.xls")
         table_set = XLSTableSet(fh)
         tables = table_set.tables
         assert 0 == len(list(tables[0].sample))
@@ -585,25 +596,25 @@ class ReadXlsTest(unittest.TestCase):
 
 class ReadHtmlTest(unittest.TestCase):
     def test_read_real_html(self):
-        fh = horror_fobj('html.html')
+        fh = horror_fobj("html.html")
         table_set = HTMLTableSet(fh)
         row_set = table_set.tables[0]
         assert 200 == len(list(row_set))
         row = list(row_set.sample)[0]
-        assert row[0].value.strip() == 'HDI Rank'
-        assert row[1].value.strip() == 'Country'
-        assert row[4].value.strip() == '2010'
+        assert row[0].value.strip() == "HDI Rank"
+        assert row[1].value.strip() == "Country"
+        assert row[4].value.strip() == "2010"
 
     def test_invisible_text_html(self):
-        fh = horror_fobj('invisible_text.html')
+        fh = horror_fobj("invisible_text.html")
         table_set = HTMLTableSet(fh)
         row_set = table_set.tables[0]
         assert 4 == len(list(row_set))
         row = list(row_set.sample)[1]
-        assert row[5].value.strip() == '1 July 1879'
+        assert row[5].value.strip() == "1 July 1879"
 
     def test_read_span_html(self):
-        fh = horror_fobj('rowcolspan.html')
+        fh = horror_fobj("rowcolspan.html")
         table_set = HTMLTableSet(fh)
         row_set = table_set.tables[0]
 
@@ -612,56 +623,50 @@ class ReadHtmlTest(unittest.TestCase):
             for x, cell in enumerate(row):
                 magic[(x, y)] = cell.value
 
-        tests = {(0, 0): '05',
-                 (0, 2): '25',
-                 (0, 3): '',
-                 (1, 3): '36',
-                 (1, 6): '66',
-                 (4, 7): '79',
-                 (4, 8): '89'}
+        tests = {(0, 0): "05", (0, 2): "25", (0, 3): "", (1, 3): "36", (1, 6): "66", (4, 7): "79", (4, 8): "89"}
 
         for test in tests:
             assert magic[test] == tests[test]
 
     def test_that_outer_table_contains_nothing(self):
-        fh = horror_fobj('complex.html')
+        fh = horror_fobj("complex.html")
         tables = {}
         for table in HTMLTableSet(fh).tables:
             tables[table.name] = table
 
         # outer_table should contain no meaningful data
-        outer_table = list(tables['Table 2 of 2'])
+        outer_table = list(tables["Table 2 of 2"])
         assert len(outer_table) == 1
         assert len(outer_table[0]) == 1
-        assert (outer_table[0][0].value.
-                     replace(" ", "").
-                     replace("\n", "") == "headfootbody")
+        assert outer_table[0][0].value.replace(" ", "").replace("\n", "") == "headfootbody"
 
     def test_that_inner_table_contains_data(self):
-        fh = horror_fobj('complex.html')
+        fh = horror_fobj("complex.html")
         tables = {}
         for table in HTMLTableSet(fh).tables:
             tables[table.name] = table
 
-        inner_table = tables['Table 1 of 2']
+        inner_table = tables["Table 1 of 2"]
         cell_values = []
         for row in inner_table:
             for cell in row:
                 cell_values.append(cell.value)
-        assert ['head', 'body', 'foot'] == cell_values
+        assert ["head", "body", "foot"] == cell_values
 
     def test_rowset_as_schema(self):
         from io import BytesIO as sio
-        ts = CSVTableSet(sio(b'''name,dob\nmk,2012-01-02\n'''))
+
+        ts = CSVTableSet(sio(b"""name,dob\nmk,2012-01-02\n"""))
         rs = ts.tables[0]
         jts = rowset_as_jts(rs).as_dict()
-        assert jts['fields'] == [
-            {'type': 'string', 'id': 'name', 'label': 'name'},
-            {'type': 'date', 'id': 'dob', 'label': 'dob'}]
+        assert jts["fields"] == [
+            {"type": "string", "id": "name", "label": "name"},
+            {"type": "date", "id": "dob", "label": "dob"},
+        ]
 
     def test_html_table_name(self):
-        fh = horror_fobj('html.html')
+        fh = horror_fobj("html.html")
         table_set = HTMLTableSet(fh)
-        assert 'Table 1 of 3' == table_set.tables[0].name
-        assert 'Table 2 of 3' == table_set.tables[1].name
-        assert 'Table 3 of 3' == table_set.tables[2].name
+        assert "Table 1 of 3" == table_set.tables[0].name
+        assert "Table 2 of 3" == table_set.tables[1].name
+        assert "Table 3 of 3" == table_set.tables[2].name

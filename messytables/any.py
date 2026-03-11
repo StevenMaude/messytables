@@ -22,6 +22,7 @@ MIMELOOKUP = {
     "application/vnd.ms-excel": "XLS",
     "application/octet-stream": "XLS",  # libmagic detects sw_gen as this on mac
     # with text "Microsoft OOXML"
+    "application/x-ole-storage": "XLS",  # newer libmagic returns this for OLE2/XLS files
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLS",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheetapplication/zip": "XLS",
     "text/html": "HTML",
