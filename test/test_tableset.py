@@ -6,10 +6,7 @@ from . import horror_fobj
 from messytables.any import any_tableset
 from messytables.core import RowSet
 from messytables.error import TableError
-try:
-    from nose.tools import assert_is_instance
-except ImportError:
-    from shim26 import assert_is_instance
+from ._nose_compat import assert_is_instance
 
 
 class TestTableSet(unittest.TestCase):

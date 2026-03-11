@@ -4,7 +4,7 @@ import chardet
 
 from messytables.core import RowSet, TableSet, Cell
 import messytables
-from messytables.compat23 import unicode_string, byte_string, native_string, PY2
+from messytables.compat23 import unicode_string, byte_string, native_string
 
 
 class UTF8Recoder:
@@ -167,16 +167,10 @@ class CSVRowSet(RowSet):
     def raw(self, sample=False):
         def rows():
             for line in self._sample:
-                if PY2:
-                    yield line.encode('utf-8')
-                else:
-                    yield line
+                yield line
             if not sample:
                 for line in self.lines:
-                    if PY2:
-                        yield line.encode('utf-8')
-                    else:
-                        yield line
+                    yield line
 
         # Fix the maximum field size to something a little larger
         csv.field_size_limit(256000)

@@ -1,17 +1,19 @@
 name: CI
 on:
-    push:
-      branches:
-        - master
-    pull_request:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
 
 jobs:
   build:
-    name: Build and Test
+    name: Build and Test (Python ${{ matrix.python }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        python: [2.7, 3.5, 3.6, 3.7, 3.8]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
       - name: Set up locale
@@ -19,18 +21,23 @@ jobs:
           sudo locale-gen en_GB.UTF-8
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
 
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
 
-      - name: Install packages
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
         run: |
-          pip install wheel coverage
-          pip install -e .
-          pip install -r requirements-test.txt
+          uv sync --all-extras
+
+      - name: Run lint checks
+        run: |
+          uv run ruff check .
 
       - name: Run tests
-        run: nosetests --with-coverage --cover-package=messytables
+        run: uv run pytest

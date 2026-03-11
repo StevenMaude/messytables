@@ -5,7 +5,7 @@ import requests
 import io
 
 from . import horror_fobj
-from nose.tools import assert_equal
+from ._nose_compat import assert_equal
 import httpretty
 
 from messytables import CSVTableSet, XLSTableSet

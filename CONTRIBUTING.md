@@ -10,7 +10,7 @@ You are very welcome to submit code features or doc changes for review and merge
 * Use [PEP8](http://www.python.org/dev/peps/pep-0008/), where possible
 * Make sure all tests are passing
 * Add a note to the `CHANGELOG.md`
-* Add new requirements to `setup.py`
+* Add and manage requirements in `pyproject.toml`
 * Send a pull request and have someone to review it
 
 For small changes and doc changes, it is not necessary to file a pull request.
@@ -31,10 +31,9 @@ Generally, follow the [commit guidelines from the Pro Git book](http://git-scm.c
 
 ```bash
 source pyenv/messytables/bin/activate
-python setup.py develop
-pip install -r requirements-test.txt
+uv sync --all-extras
 
-nosetests
+uv run pytest
 ```
 
 ## Merging a pull request
