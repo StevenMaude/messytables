@@ -15,6 +15,7 @@ MIMELOOKUP = {'application/x-zip-compressed': 'ZIP',
               'application/ms-excel': 'XLS',
               'application/xls': 'XLS',
               'application/vnd.ms-excel': 'XLS',
+              'application/x-ole-storage': 'XLS',
               'application/octet-stream': 'XLS', # libmagic detects sw_gen as this on mac
                                                  # with text "Microsoft OOXML"
               'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLS',
@@ -53,7 +54,7 @@ def clean_ext(filename):
     'xlsx'
     """
     dot_ext = '.' + filename
-    matches = re.findall('\.(\w*)', dot_ext)
+    matches = re.findall(r"\.(\w*)", dot_ext)
     return matches[-1].lower()
 
 
@@ -138,7 +139,7 @@ def any_tableset(fileobj, mimetype=None, extension='', auto_detect=True, **kw):
                 'Did not recognise MIME type given: "{mimetype}".'.format(
                     mimetype=mimetype))
 
-    if short_ext is not '':
+    if short_ext:
         attempt = guess_ext(short_ext)
         if attempt:
             return parsers[attempt](fileobj, **kw)

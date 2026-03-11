@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import unittest
 
+import pytest
 from . import horror_fobj
-from nose.tools import assert_equal
-from nose.plugins.skip import SkipTest
+from ._nose_compat import assert_equal
 from messytables import (any_tableset, XLSTableSet, ZIPTableSet,
                          CSVTableSet, ODSTableSet,
                          ReadError)
@@ -18,15 +18,19 @@ suite = [{'filename': 'simple.csv', 'tableset': CSVTableSet},
          ]
 
 
-def test_simple():
-    for d in suite:
-        yield check_no_filename, d
-        yield check_filename, d
+@pytest.mark.parametrize("suite_entry", suite)
+def test_simple_no_filename(suite_entry):
+    check_no_filename(suite_entry)
+
+
+@pytest.mark.parametrize("suite_entry", suite)
+def test_simple_filename(suite_entry):
+    check_filename(suite_entry)
 
 
 def check_no_filename(d):
     if not d['tableset']:
-        raise SkipTest("Optional library not installed. Skipping")
+        pytest.skip("Optional library not installed. Skipping")
     fh = horror_fobj(d['filename'])
     table_set = any_tableset(fh)
     assert isinstance(table_set, d['tableset']), type(table_set)
@@ -34,7 +38,7 @@ def check_no_filename(d):
 
 def check_filename(d):
     if not d['tableset']:
-        raise SkipTest("Optional library not installed. Skipping")
+        pytest.skip("Optional library not installed. Skipping")
     fh = horror_fobj(d['filename'])
     table_set = any_tableset(fh, extension=d['filename'], auto_detect=False)
     assert isinstance(table_set, d['tableset']), type(table_set)

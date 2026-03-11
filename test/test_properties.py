@@ -4,18 +4,15 @@ import unittest
 from . import horror_fobj
 from messytables.any import any_tableset
 from messytables.error import NoSuchPropertyError
-from nose.tools import (
+from ._nose_compat import (
     assert_equal,
     assert_false,
     assert_raises,
-    assert_true)
+    assert_true,
+    assert_is_instance,
+    assert_greater_equal,
+)
 import lxml.html
-
-try:
-    # Python 2.6 doesn't provide assert_is_instance
-    from nose.tools import assert_is_instance, assert_greater_equal
-except ImportError:
-    from .shim26 import assert_is_instance, assert_greater_equal
 
 
 class TestCellProperties(unittest.TestCase):

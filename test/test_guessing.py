@@ -3,8 +3,8 @@ import unittest
 import io
 
 from . import horror_fobj
-from nose.plugins.attrib import attr
-from nose.tools import assert_equal
+import pytest
+from ._nose_compat import assert_equal
 from messytables import (CSVTableSet, type_guess, headers_guess,
                          offset_processor, DateType, StringType,
                          DecimalType, IntegerType,
@@ -12,7 +12,7 @@ from messytables import (CSVTableSet, type_guess, headers_guess,
 
 
 class TypeGuessTest(unittest.TestCase):
-    @attr("slow")
+    @pytest.mark.slow
     def test_type_guess(self):
         csv_file = io.BytesIO(b'''
             1,   2012/2/12, 2,   02 October 2011,  yes,   1
@@ -30,7 +30,10 @@ class TypeGuessTest(unittest.TestCase):
 
     def test_type_guess_strict(self):
         import locale
-        locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
+        try:
+            locale.setlocale(locale.LC_ALL, 'en_GB.UTF-8')
+        except locale.Error:
+            self.skipTest("en_GB.UTF-8 locale is not available")
         csv_file = io.BytesIO(b'''
             1,   2012/2/12, 2,      2,02 October 2011,"100.234354"
             2,   2012/2/12, 1.1,    0,1 May 2011,"100,000,000.12"
@@ -80,7 +83,7 @@ class TypeGuessTest(unittest.TestCase):
             rows.sample, types=[IntegerType, DecimalType], strict=False)
         assert_equal(guessed_types, [IntegerType()])
 
-    @attr("slow")
+    @pytest.mark.slow
     def test_strict_type_guessing_with_large_file(self):
         fh = horror_fobj('211.csv')
         rows = CSVTableSet(fh).tables[0]
