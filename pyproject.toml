@@ -1,0 +1,67 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "messytables"
+version = "0.15.2"
+description = "Parse messy tabular data in various formats"
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Open Knowledge Foundation", email = "info@okfn.org" }]
+keywords = []
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+requires-python = ">=3.10"
+dependencies = [
+    # xlrd 2.x dropped xlsx support; keep <2.0.0 to retain xlsx compatibility
+    "xlrd>=1.2.0,<2.0.0",
+    "python-magic>=0.4.27",
+    "chardet>=5.2.0",
+    "python-dateutil>=2.9.0",
+    "lxml>=5.0.0",
+    "requests>=2.31.0",
+    "html5lib>=1.1",
+    "json-table-schema>=0.2,<=0.2.1",
+]
+
+[project.urls]
+Homepage = "https://okfn.org"
+Documentation = "https://messytables.readthedocs.io"
+
+[dependency-groups]
+dev = [
+    "coverage",
+    "httpretty>=1.1.4",
+    "pytest>=8.0.0",
+    "ruff>=0.3.0",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["messytables"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
+
+[tool.coverage.run]
+source = ["messytables"]
