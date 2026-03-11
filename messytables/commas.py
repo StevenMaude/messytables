@@ -1,10 +1,10 @@
-import csv
 import codecs
+import csv
+
 import chardet
 
-from messytables.core import RowSet, TableSet, Cell
 import messytables
-from messytables.compat23 import unicode_string, byte_string, native_string, PY2
+from messytables.core import Cell, RowSet, TableSet
 
 
 class UTF8Recoder:
@@ -14,26 +14,25 @@ class UTF8Recoder:
 
     # maps between chardet encoding and codecs bom keys
     BOM_MAPPING = {
-        'utf-16le': 'BOM_UTF16_LE',
-        'utf-16be': 'BOM_UTF16_BE',
-        'utf-32le': 'BOM_UTF32_LE',
-        'utf-32be': 'BOM_UTF32_BE',
-        'utf-8': 'BOM_UTF8',
-        'utf-8-sig': 'BOM_UTF8',
-
+        "utf-16le": "BOM_UTF16_LE",
+        "utf-16be": "BOM_UTF16_BE",
+        "utf-32le": "BOM_UTF32_LE",
+        "utf-32be": "BOM_UTF32_BE",
+        "utf-8": "BOM_UTF8",
+        "utf-8-sig": "BOM_UTF8",
     }
 
     def __init__(self, f, encoding):
         sample = f.read(2000)
         if not encoding:
             results = chardet.detect(sample)
-            encoding = results['encoding']
+            encoding = results["encoding"]
             if not encoding:
                 # Don't break, just try and load the data with
                 # a semi-sane encoding
-                encoding = 'utf-8'
+                encoding = "utf-8"
         f.seek(0)
-        self.reader = codecs.getreader(encoding)(f, 'ignore')
+        self.reader = codecs.getreader(encoding)(f, "ignore")
 
         # The reader only skips a BOM if the encoding isn't explicit about its
         # endianness (i.e. if encoding is UTF-16 a BOM is handled properly
@@ -59,7 +58,7 @@ class UTF8Recoder:
 
     def __next__(self):
         line = self.reader.readline()
-        if not line or line == '\0':
+        if not line or line == "\0":
             raise StopIteration
         result = line.encode("utf-8")
         return result
@@ -67,21 +66,31 @@ class UTF8Recoder:
     next = __next__
 
 
-def to_unicode_or_bust(obj, encoding='utf-8'):
-    if isinstance(obj, byte_string):
-        obj = unicode_string(obj, encoding)
+def to_unicode_or_bust(obj, encoding="utf-8"):
+    if isinstance(obj, bytes):
+        obj = str(obj, encoding)
     return obj
 
 
 class CSVTableSet(TableSet):
-    """ A CSV table set. Since CSV is always just a single table,
-    this is just a pass-through for the row set. """
+    """A CSV table set. Since CSV is always just a single table,
+    this is just a pass-through for the row set."""
 
-    def __init__(self, fileobj, delimiter=None, quotechar=None, name=None,
-                 encoding=None, window=None, doublequote=None,
-                 lineterminator=None, skipinitialspace=None, **kw):
+    def __init__(
+        self,
+        fileobj,
+        delimiter=None,
+        quotechar=None,
+        name=None,
+        encoding=None,
+        window=None,
+        doublequote=None,
+        lineterminator=None,
+        skipinitialspace=None,
+        **kw,
+    ):
         self.fileobj = messytables.seekable_stream(fileobj)
-        self.name = name or 'table'
+        self.name = name or "table"
         self.delimiter = delimiter
         self.quotechar = quotechar
         self.encoding = encoding
@@ -91,33 +100,48 @@ class CSVTableSet(TableSet):
         self.skipinitialspace = skipinitialspace
 
     def make_tables(self):
-        """ Return the actual CSV table. """
-        return [CSVRowSet(self.name, self.fileobj,
-                          delimiter=self.delimiter,
-                          quotechar=self.quotechar,
-                          encoding=self.encoding,
-                          window=self.window,
-                          doublequote=self.doublequote,
-                          lineterminator=self.lineterminator,
-                          skipinitialspace=self.skipinitialspace)]
+        """Return the actual CSV table."""
+        return [
+            CSVRowSet(
+                self.name,
+                self.fileobj,
+                delimiter=self.delimiter,
+                quotechar=self.quotechar,
+                encoding=self.encoding,
+                window=self.window,
+                doublequote=self.doublequote,
+                lineterminator=self.lineterminator,
+                skipinitialspace=self.skipinitialspace,
+            )
+        ]
 
 
 class CSVRowSet(RowSet):
-    """ A CSV row set is an iterator on a CSV file-like object
+    """A CSV row set is an iterator on a CSV file-like object
     (which can potentially be infinetly large). When loading,
     a sample is read and cached so you can run analysis on the
-    fragment. """
+    fragment."""
 
-    def __init__(self, name, fileobj, delimiter=None, quotechar=None,
-                 encoding='utf-8', window=None, doublequote=None,
-                 lineterminator=None, skipinitialspace=None):
+    def __init__(
+        self,
+        name,
+        fileobj,
+        delimiter=None,
+        quotechar=None,
+        encoding="utf-8",
+        window=None,
+        doublequote=None,
+        lineterminator=None,
+        skipinitialspace=None,
+    ):
         self.name = name
         seekable_fileobj = messytables.seekable_stream(fileobj)
         self.fileobj = UTF8Recoder(seekable_fileobj, encoding)
 
         def fake_ilines(fobj):
             for row in fobj:
-                    yield row.decode('utf-8')
+                yield row.decode("utf-8")
+
         self.lines = fake_ilines(self.fileobj)
         self._sample = []
         self.delimiter = delimiter
@@ -135,13 +159,10 @@ class CSVRowSet(RowSet):
 
     @property
     def _dialect(self):
-        delim = '\n'  # NATIVE
+        delim = "\n"  # NATIVE
         sample = delim.join(self._sample)
         try:
-            dialect = csv.Sniffer().sniff(sample,
-                delimiters=['\t', ',', ';', '|'])  # NATIVE
-            dialect.delimiter = native_string(dialect.delimiter)
-            dialect.quotechar = native_string(dialect.quotechar)
+            dialect = csv.Sniffer().sniff(sample, delimiters=["\t", ",", ";", "|"])  # NATIVE
             dialect.lineterminator = delim
             dialect.doublequote = True
             return dialect
@@ -153,42 +174,35 @@ class CSVRowSet(RowSet):
         # some variables in the dialect can be overridden
         d = {}
         if self.delimiter:
-            d['delimiter'] = self.delimiter
+            d["delimiter"] = self.delimiter
         if self.quotechar:
-            d['quotechar'] = self.quotechar
+            d["quotechar"] = self.quotechar
         if self.doublequote:
-            d['doublequote'] = self.doublequote
+            d["doublequote"] = self.doublequote
         if self.lineterminator:
-            d['lineterminator'] = self.lineterminator
+            d["lineterminator"] = self.lineterminator
         if self.skipinitialspace is not None:
-            d['skipinitialspace'] = self.skipinitialspace
+            d["skipinitialspace"] = self.skipinitialspace
         return d
 
     def raw(self, sample=False):
         def rows():
             for line in self._sample:
-                if PY2:
-                    yield line.encode('utf-8')
-                else:
-                    yield line
+                yield line
             if not sample:
                 for line in self.lines:
-                    if PY2:
-                        yield line.encode('utf-8')
-                    else:
-                        yield line
+                    yield line
 
         # Fix the maximum field size to something a little larger
         csv.field_size_limit(256000)
 
         try:
-            for row in csv.reader(rows(),
-                                  dialect=self._dialect, **self._overrides):
+            for row in csv.reader(rows(), dialect=self._dialect, **self._overrides):
                 yield [Cell(to_unicode_or_bust(c)) for c in row]
         except csv.Error as err:
-            if u'newline inside string' in unicode_string(err) and sample:
+            if "newline inside string" in str(err) and sample:
                 pass
-            elif u'line contains NULL byte' in unicode_string(err):
+            elif "line contains NULL byte" in str(err):
                 pass
             else:
-                raise messytables.ReadError('Error reading CSV: %r', err)
+                raise messytables.ReadError("Error reading CSV: %r", err)

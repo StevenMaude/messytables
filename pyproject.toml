@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "messytables"
+version = "0.15.2"
+description = "Parse messy tabular data in various formats"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [
+    { name = "Open Knowledge Foundation", email = "info@okfn.org" },
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "xlrd>=1.2.0,<2",
+    "python-magic>=0.4.27",
+    "chardet>=5.0.0",
+    "python-dateutil>=2.8.2",
+    "lxml>=5.0.0",
+    "requests>=2.31.0",
+    "html5lib>=1.1",
+]
+
+[project.urls]
+Homepage = "https://okfn.org"
+Documentation = "https://messytables.readthedocs.io"
+
+[project.optional-dependencies]
+dev = [
+    "httpretty>=1.1.4",
+    "pytest>=8.0",
+    "pytest-cov>=4.0",
+    "coverage>=7.0",
+    "ruff>=0.9.0",
+]
+
+[tool.setuptools.packages.find]
+exclude = ["ez_setup", "examples", "test*"]
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+]
+
+[tool.coverage.run]
+source = ["messytables"]
+
+[tool.ruff]
+target-version = "py310"
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",  # line too long - handled by formatter
+    "E741",  # ambiguous variable name
+]
+
+[tool.ruff.lint.per-file-ignores]
+"test/*" = ["F841"]
+"messytables/__init__.py" = ["F401", "E402"]

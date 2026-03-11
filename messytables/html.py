@@ -1,8 +1,10 @@
-from messytables.core import RowSet, TableSet, Cell, CoreProperties
-import lxml.html
-from collections import defaultdict
-import html5lib
 import xml.etree.ElementTree as etree
+from collections import defaultdict
+
+import html5lib
+import lxml.html
+
+from messytables.core import Cell, CoreProperties, RowSet, TableSet
 
 
 def fromstring(s):
@@ -15,14 +17,15 @@ class HTMLTableSet(TableSet):
     """
     A TableSet from a HTML document.
     """
+
     def __init__(self, fileobj=None, filename=None, window=None, **kw):
 
         if filename is not None:
-            fh = open(filename, 'r')
+            fh = open(filename, "r")
         else:
             fh = fileobj
         if not fh:
-            raise TypeError('You must provide one of filename or fileobj')
+            raise TypeError("You must provide one of filename or fileobj")
 
         self.htmltables = []
         root = fromstring(fh.read())
@@ -30,27 +33,27 @@ class HTMLTableSet(TableSet):
         # Grab tables that don't contain tables, remove from root, repeat.
         while True:
             dropped = False
-            tables = root.xpath('//table[not(@messytable)]')
+            tables = root.xpath("//table[not(@messytable)]")
             if not tables:
                 break
             for t in tables:
                 if not t.xpath(".//table[not(@messytable)]"):
                     self.htmltables.append(t)
-                    t.attrib['messytable'] = 'done'
+                    t.attrib["messytable"] = "done"
                     dropped = True
-            assert dropped, "Didn't find any tables not containing " + \
-                "other tables. This is a bug."  # avoid infinite loops
+            assert dropped, (
+                "Didn't find any tables not containing " + "other tables. This is a bug."
+            )  # avoid infinite loops
 
     def make_tables(self):
         """
         Return a listing of tables (as HTMLRowSets) in the table set.
         """
-        def rowset_name(rowset, table_index):
-            return "Table {0} of {1}".format(table_index + 1,
-                                             len(self.htmltables))
 
-        return [HTMLRowSet(rowset_name(rowset, index), rowset)
-                for index, rowset in enumerate(self.htmltables)]
+        def rowset_name(rowset, table_index):
+            return "Table {0} of {1}".format(table_index + 1, len(self.htmltables))
+
+        return [HTMLRowSet(rowset_name(rowset, index), rowset) for index, rowset in enumerate(self.htmltables)]
 
 
 def insert_blank_cells(row, blanks):
@@ -71,6 +74,7 @@ class HTMLRowSet(RowSet):
     """
     A RowSet representing a HTML table.
     """
+
     def __init__(self, name, sheet, window=None):
         self.name = name
         self.sheet = sheet
@@ -83,40 +87,35 @@ class HTMLRowSet(RowSet):
         whose parent table is this one
         """
 
-        return [e for e in els
-                if self.sheet in e.xpath("./ancestor::table[1]")]
+        return [e for e in els if self.sheet in e.xpath("./ancestor::table[1]")]
 
     def raw(self, sample=False):
         def identify_anatomy(tag):
             # 0: thead, 1: tbody, 2: tfoot
-            parts = ['.//ancestor::thead',
-                     './/ancestor::tbody',
-                     './/ancestor::tfoot']
+            parts = [".//ancestor::thead", ".//ancestor::tbody", ".//ancestor::tfoot"]
             for i, part in enumerate(parts):
                 if self.in_table(tag.xpath(part)):
                     return i
             return 2  # default to body
 
         blank_cells = defaultdict(list)  # ie row 2, cols 3,4,6: {2: [3,4,6]}
-        allrows = sorted(self.in_table(self.sheet.xpath(".//tr")),
-                         key=lambda tag: identify_anatomy(tag))
+        allrows = sorted(self.in_table(self.sheet.xpath(".//tr")), key=lambda tag: identify_anatomy(tag))
         # http://stackoverflow.com/questions/1915376/ - sorted() is stable.
 
         for r, row in enumerate(allrows):
             # TODO: handle header nicer - preserve the fact it's a header!
-            html_elements = self.in_table(
-                row.xpath('.//*[name()="td" or name()="th"]'))
+            html_elements = self.in_table(row.xpath('.//*[name()="td" or name()="th"]'))
             html_cells = [HTMLCell(source=cell) for cell in html_elements]
 
             """ at the end of this chunk, you have accurate blank_cells."""
             output_column = 0
             for html_cell in html_cells:
-                assert type(r) == int
+                assert isinstance(r, int)
                 while output_column in blank_cells[r]:
                     output_column += 1  # pass over col, doesn't exist in src
 
-                rowspan = html_cell.properties['rowspan']
-                colspan = html_cell.properties['colspan']
+                rowspan = html_cell.properties["rowspan"]
+                colspan = html_cell.properties["colspan"]
 
                 x_range = range(output_column, output_column + colspan)
                 y_range = range(r, r + rowspan)
@@ -149,7 +148,7 @@ class FakeHTMLCell(Cell):
 
 
 class HTMLCell(Cell):
-    """ The Cell __init__ signature is:
+    """The Cell __init__ signature is:
     def __init__(self, value=None, column=None, type=None):
     where 'value' is the primary input, 'column' is a column name, and
     type is messytables.types.StringType() or better."""
@@ -160,6 +159,7 @@ class HTMLCell(Cell):
         self._lxml = source
         if type is None:
             from messytables.types import StringType
+
             type = StringType()
         self.type = type
         self.column = column
@@ -196,30 +196,30 @@ def text_from_element(elem):
     """
     builder = []
     for x in elem.iter():
-        #print x.tag, x.attrib, x.text, x.tail
+        # print x.tag, x.attrib, x.text, x.tail
         if is_invisible_text(x):
-            cell_str = x.tail or ''  # handle None values.
+            cell_str = x.tail or ""  # handle None values.
         else:
-            cell_str = (x.text or '') + (x.tail or '')
-        cell_str = cell_str.replace('\n', ' ').strip()
-        if x.tag == 'br' or x.tag == 'p':
-            cell_str = '\n' + cell_str
+            cell_str = (x.text or "") + (x.tail or "")
+        cell_str = cell_str.replace("\n", " ").strip()
+        if x.tag == "br" or x.tag == "p":
+            cell_str = "\n" + cell_str
         builder.append(cell_str)
-    return ''.join(builder).strip()
+    return "".join(builder).strip()
 
 
 def is_invisible_text(elem):
     flag = False
     if elem.tag == "span":
-        if 'style' in elem.attrib:
-            if 'display:none' in elem.attrib['style']:
+        if "style" in elem.attrib:
+            if "display:none" in elem.attrib["style"]:
                 flag = True
 
     return flag
 
 
 class HTMLProperties(CoreProperties):
-    KEYS = ['_lxml', 'html', 'colspan', 'rowspan']
+    KEYS = ["_lxml", "html", "colspan", "rowspan"]
 
     def __init__(self, lxml_element):
         if not isinstance(lxml_element, lxml.etree._Element):
@@ -235,12 +235,12 @@ class HTMLProperties(CoreProperties):
 
     def get_colspan(self):
         try:
-            return int(self.lxml_element.attrib.get('colspan', 1))
+            return int(self.lxml_element.attrib.get("colspan", 1))
         except ValueError:
             return 1
 
     def get_rowspan(self):
         try:
-            return int(self.lxml_element.attrib.get('rowspan', 1))
+            return int(self.lxml_element.attrib.get("rowspan", 1))
         except ValueError:
             return 1
