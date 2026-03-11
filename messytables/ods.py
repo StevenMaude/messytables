@@ -4,29 +4,23 @@ import zipfile
 
 from lxml import etree
 
-from messytables.core import RowSet, TableSet, Cell
-from messytables.types import (StringType, DecimalType,
-                               DateType, BoolType, CurrencyType,
-                               TimeType, PercentageType)
+from messytables.core import Cell, RowSet, TableSet
+from messytables.types import BoolType, CurrencyType, DateType, DecimalType, PercentageType, StringType, TimeType
 
+ODS_NAMESPACES_TAG_MATCH = re.compile(b"(<office:document-content[^>]*>)", re.MULTILINE)
+ODS_TABLE_MATCH = re.compile(rb".*?(<table:table.*?<\/.*?:table>).*?", re.MULTILINE)
+ODS_TABLE_NAME = re.compile(rb'.*?table:name="(.*?)".*?')
+ODS_ROW_MATCH = re.compile(rb".*?(<table:table-row.*?<\/.*?:table-row>).*?", re.MULTILINE)
 
-ODS_NAMESPACES_TAG_MATCH = re.compile(
-    b"(<office:document-content[^>]*>)", re.MULTILINE)
-ODS_TABLE_MATCH = re.compile(
-    b".*?(<table:table.*?<\/.*?:table>).*?", re.MULTILINE)
-ODS_TABLE_NAME = re.compile(b'.*?table:name=\"(.*?)\".*?')
-ODS_ROW_MATCH = re.compile(
-    b".*?(<table:table-row.*?<\/.*?:table-row>).*?", re.MULTILINE)
-
-NS_OPENDOCUMENT_PTTN = u"urn:oasis:names:tc:opendocument:xmlns:%s"
-NS_CAL_PTTN = u"urn:org:documentfoundation:names:experimental:calc:xmlns:%s"
+NS_OPENDOCUMENT_PTTN = "urn:oasis:names:tc:opendocument:xmlns:%s"
+NS_CAL_PTTN = "urn:org:documentfoundation:names:experimental:calc:xmlns:%s"
 NS_OPENDOCUMENT_TABLE = NS_OPENDOCUMENT_PTTN % "table:1.0"
 NS_OPENDOCUMENT_OFFICE = NS_OPENDOCUMENT_PTTN % "office:1.0"
 
-TABLE_CELL = 'table-cell'
-VALUE_TYPE = 'value-type'
-COLUMN_REPEAT = 'number-columns-repeated'
-EMPTY_CELL_VALUE = ''
+TABLE_CELL = "table-cell"
+VALUE_TYPE = "value-type"
+COLUMN_REPEAT = "number-columns-repeated"
+EMPTY_CELL_VALUE = ""
 
 ODS_VALUE_TOKEN = {
     "float": "value",
@@ -34,15 +28,15 @@ ODS_VALUE_TOKEN = {
     "time": "time-value",
     "boolean": "boolean-value",
     "percentage": "value",
-    "currency": "value"
+    "currency": "value",
 }
 
 ODS_TYPES = {
-    'float': DecimalType(),
-    'date': DateType('%Y-%m-%d'),
-    'boolean': BoolType(),
-    'percentage': PercentageType(),
-    'time': TimeType()
+    "float": DecimalType(),
+    "date": DateType("%Y-%m-%d"),
+    "boolean": BoolType(),
+    "percentage": PercentageType(),
+    "time": TimeType(),
 }
 
 
@@ -55,7 +49,7 @@ class ODSTableSet(TableSet):
     """
 
     def __init__(self, fileobj, window=None, **kw):
-        '''Initialize the object.
+        """Initialize the object.
 
         :param fileobj: may be a file path or a file-like object. Note the
         file-like object *must* be in binary mode and must be seekable (it will
@@ -67,8 +61,8 @@ class ODSTableSet(TableSet):
         To get a seekable file you *cannot* use
         messytables.core.seekable_stream as it does not support the full seek
         functionality.
-        '''
-        if hasattr(fileobj, 'read'):
+        """
+        if hasattr(fileobj, "read"):
             # wrap in a StringIO so we do not have hassle with seeks and
             # binary etc (see notes to __init__ above)
             # TODO: rather wasteful if in fact fileobj comes from disk
@@ -82,30 +76,28 @@ class ODSTableSet(TableSet):
 
     def make_tables(self):
         """
-            Return the sheets in the workbook.
+        Return the sheets in the workbook.
 
-            A regex is used for this to avoid having to:
+        A regex is used for this to avoid having to:
 
-            1. load large the entire file into memory, or
-            2. SAX parse the file more than once
+        1. load large the entire file into memory, or
+        2. SAX parse the file more than once
         """
         namespace_tags = self._get_namespace_tags()
-        sheets = [m.groups(0)[0]
-                  for m in ODS_TABLE_MATCH.finditer(self.content)]
-        return [ODSRowSet(sheet, self.window, namespace_tags)
-                for sheet in sheets]
+        sheets = [m.groups(0)[0] for m in ODS_TABLE_MATCH.finditer(self.content)]
+        return [ODSRowSet(sheet, self.window, namespace_tags) for sheet in sheets]
 
     def _get_namespace_tags(self):
         match = re.search(ODS_NAMESPACES_TAG_MATCH, self.content)
         assert match
         tag_open = match.groups()[0]
-        tag_close = b'</office:document-content>'
+        tag_close = b"</office:document-content>"
         return tag_open, tag_close
 
 
 class ODSRowSet(RowSet):
-    """ ODS support for a single sheet in the ODS workbook. Unlike
-    the CSV row set this is not a streaming operation. """
+    """ODS support for a single sheet in the ODS workbook. Unlike
+    the CSV row set this is not a streaming operation."""
 
     def __init__(self, sheet, window=None, namespace_tags=None):
         self.sheet = sheet
@@ -127,26 +119,26 @@ class ODSRowSet(RowSet):
             self.namespace_tags = namespace_tags
         else:
             namespaces = {
-                "dc": u"http://purl.org/dc/elements/1.1/",
-                "draw": NS_OPENDOCUMENT_PTTN % u"drawing:1.0",
-                "number": NS_OPENDOCUMENT_PTTN % u"datastyle:1.0",
-                "office": NS_OPENDOCUMENT_PTTN % u"office:1.0",
-                "svg": NS_OPENDOCUMENT_PTTN % u"svg-compatible:1.0",
-                "table": NS_OPENDOCUMENT_PTTN % u"table:1.0",
-                "text": NS_OPENDOCUMENT_PTTN % u"text:1.0",
-                "calcext": NS_CAL_PTTN % u"calcext:1.0",
+                "dc": "http://purl.org/dc/elements/1.1/",
+                "draw": NS_OPENDOCUMENT_PTTN % "drawing:1.0",
+                "number": NS_OPENDOCUMENT_PTTN % "datastyle:1.0",
+                "office": NS_OPENDOCUMENT_PTTN % "office:1.0",
+                "svg": NS_OPENDOCUMENT_PTTN % "svg-compatible:1.0",
+                "table": NS_OPENDOCUMENT_PTTN % "table:1.0",
+                "text": NS_OPENDOCUMENT_PTTN % "text:1.0",
+                "calcext": NS_CAL_PTTN % "calcext:1.0",
             }
 
-            ods_header = u"<wrapper {0}>"\
-                .format(" ".join('xmlns:{0}="{1}"'.format(k, v)
-                        for k, v in namespaces.iteritems())).encode('utf-8')
-            ods_footer = u"</wrapper>".encode('utf-8')
+            ods_header = "<wrapper {0}>".format(
+                " ".join('xmlns:{0}="{1}"'.format(k, v) for k, v in namespaces.iteritems())
+            ).encode("utf-8")
+            ods_footer = "</wrapper>".encode("utf-8")
             self.namespace_tags = (ods_header, ods_footer)
 
         super(ODSRowSet, self).__init__(typed=True)
 
     def raw(self, sample=False):
-        """ Iterate over all rows in this sheet. """
+        """Iterate over all rows in this sheet."""
         rows = ODS_ROW_MATCH.findall(self.sheet)
 
         for row in rows:
@@ -156,7 +148,7 @@ class ODSRowSet(RowSet):
             partial = io.BytesIO(block)
             empty_row = True
 
-            for action, element in etree.iterparse(partial, ('end',)):
+            for action, element in etree.iterparse(partial, ("end",)):
                 if element.tag != _tag(NS_OPENDOCUMENT_TABLE, TABLE_CELL):
                     continue
 
@@ -164,8 +156,7 @@ class ODSRowSet(RowSet):
                 if empty_row is True and cell.value != EMPTY_CELL_VALUE:
                     empty_row = False
 
-                repeat = element.attrib.get(
-                    _tag(NS_OPENDOCUMENT_TABLE, COLUMN_REPEAT))
+                repeat = element.attrib.get(_tag(NS_OPENDOCUMENT_TABLE, COLUMN_REPEAT))
                 if repeat:
                     number_of_repeat = int(repeat)
                     row_data += [cell] * number_of_repeat
@@ -183,13 +174,13 @@ class ODSRowSet(RowSet):
 
 def _read_cell(element):
     cell_type = element.attrib.get(_tag(NS_OPENDOCUMENT_OFFICE, VALUE_TYPE))
-    value_token = ODS_VALUE_TOKEN.get(cell_type, 'value')
-    if cell_type == 'string':
+    value_token = ODS_VALUE_TOKEN.get(cell_type, "value")
+    if cell_type == "string":
         cell = _read_text_cell(element)
-    elif cell_type == 'currency':
+    elif cell_type == "currency":
         value = element.attrib.get(_tag(NS_OPENDOCUMENT_OFFICE, value_token))
-        currency = element.attrib.get(_tag(NS_OPENDOCUMENT_OFFICE, 'currency'))
-        cell = Cell(value + ' ' + currency, type=CurrencyType())
+        currency = element.attrib.get(_tag(NS_OPENDOCUMENT_OFFICE, "currency"))
+        cell = Cell(value + " " + currency, type=CurrencyType())
     elif cell_type is not None:
         value = element.attrib.get(_tag(NS_OPENDOCUMENT_OFFICE, value_token))
         cell = Cell(value, type=ODS_TYPES.get(cell_type, StringType()))
@@ -208,11 +199,11 @@ def _read_text_cell(element):
         else:
             text_content.append(EMPTY_CELL_VALUE)
     if len(text_content) > 0:
-        cell_value = '\n'.join(text_content)
+        cell_value = "\n".join(text_content)
     else:
         cell_value = EMPTY_CELL_VALUE
     return Cell(cell_value, type=StringType())
 
 
 def _tag(namespace, tag):
-    return '{%s}%s' % (namespace, tag)
+    return "{%s}%s" % (namespace, tag)
