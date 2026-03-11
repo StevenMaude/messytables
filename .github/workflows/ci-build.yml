@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: [2.7, 3.5, 3.6, 3.7, 3.8]
+        python: ["3.10", "3.11", "3.12", "3.13", "3.14"]
 
     steps:
       - name: Set up locale
@@ -19,18 +19,26 @@ jobs:
           sudo locale-gen en_GB.UTF-8
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
 
       - name: Install packages
         run: |
-          pip install wheel coverage
-          pip install -e .
-          pip install -r requirements-test.txt
+          uv sync --extra dev
+
+      - name: Run linter
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
 
       - name: Run tests
-        run: nosetests --with-coverage --cover-package=messytables
+        run: uv run pytest --cov=messytables --cov-report=term-missing

@@ -1,16 +1,17 @@
 import sys
 from datetime import datetime, time
+
 import xlrd
 from xlrd.biffh import XLRDError
 
-from messytables.core import RowSet, TableSet, Cell, CoreProperties
-from messytables.types import (StringType, IntegerType,
-                               DateType, FloatType)
+from messytables.core import Cell, CoreProperties, RowSet, TableSet
 from messytables.error import ReadError
-from messytables.compat23 import PY2
+from messytables.types import DateType, FloatType, IntegerType, StringType
+
 
 class InvalidDateError(Exception):
     pass
+
 
 XLS_TYPES = {
     1: StringType(),
@@ -22,36 +23,34 @@ XLS_TYPES = {
     2: FloatType(),
     3: DateType(None),
     # this is actually boolean but we do not have a boolean type yet
-    4: IntegerType()
+    4: IntegerType(),
 }
 
 
 class XLSTableSet(TableSet):
-    """An excel workbook wrapper object.
-    """
+    """An excel workbook wrapper object."""
 
-    def __init__(self, fileobj=None, filename=None, window=None,
-                 encoding=None, with_formatting_info=True, **kw):
-        '''Initialize the tableset.
+    def __init__(self, fileobj=None, filename=None, window=None, encoding=None, with_formatting_info=True, **kw):
+        """Initialize the tableset.
 
         :param encoding: passed on to xlrd.open_workbook function
             as encoding_override
         :param with_formatting_info: passed to xlrd to get font details of cells
-        '''
+        """
+
         def get_workbook():
             try:
                 return xlrd.open_workbook(
                     filename=filename,
                     file_contents=read_obj,
                     encoding_override=encoding,
-                    formatting_info=with_formatting_info)
-            except XLRDError as e:
+                    formatting_info=with_formatting_info,
+                )
+            except XLRDError:
                 _, value, traceback = sys.exc_info()
-                if PY2:
-                   raise ReadError("Can't read Excel file: %r" % value, traceback)
-                else:
-                   raise ReadError("Can't read Excel file: %r" % value).with_traceback(traceback)
-        '''Initilize the tableset.
+                raise ReadError("Can't read Excel file: %r" % value).with_traceback(traceback)
+
+        """Initilize the tableset.
 
         :param encoding: passed on to xlrd.open_workbook function
             as encoding_override
@@ -63,11 +62,11 @@ class XLSTableSet(TableSet):
         The convoluted "try it with with_formatting_info, then try it without" is
         necessary because xlrd doesn't currently support getting this information
         from XLSX files. Workarounds include converting the XLSX document in LibreOffice.
-        '''
+        """
         self.window = window
 
         if not filename and not fileobj:
-            raise Exception('You must provide one of filename or fileobj')
+            raise Exception("You must provide one of filename or fileobj")
 
         if fileobj:
             read_obj = fileobj.read()
@@ -76,23 +75,21 @@ class XLSTableSet(TableSet):
 
         try:
             self.workbook = get_workbook()
-        except NotImplementedError as e:
+        except NotImplementedError:
             if not with_formatting_info:
                 raise
             else:
-                with_formatting_info=False
+                with_formatting_info = False
                 self.workbook = get_workbook()
 
-
     def make_tables(self):
-        """ Return the sheets in the workbook. """
-        return [XLSRowSet(name, self.workbook.sheet_by_name(name), self.window)
-                for name in self.workbook.sheet_names()]
+        """Return the sheets in the workbook."""
+        return [XLSRowSet(name, self.workbook.sheet_by_name(name), self.window) for name in self.workbook.sheet_names()]
 
 
 class XLSRowSet(RowSet):
-    """ Excel support for a single sheet in the excel workbook. Unlike
-    the CSV row set this is not a streaming operation. """
+    """Excel support for a single sheet in the excel workbook. Unlike
+    the CSV row set this is not a streaming operation."""
 
     def __init__(self, name, sheet, window=None):
         self.name = name
@@ -101,9 +98,9 @@ class XLSRowSet(RowSet):
         super(XLSRowSet, self).__init__(typed=True)
 
     def raw(self, sample=False):
-        """ Iterate over all rows in this sheet. Types are automatically
+        """Iterate over all rows in this sheet. Types are automatically
         converted according to the excel data types specified, including
-        conversion of excel dates, which are notoriously buggy. """
+        conversion of excel dates, which are notoriously buggy."""
         num_rows = self.sheet.nrows
         for rownum in range(min(self.window, num_rows) if sample else num_rows):
             row = []
@@ -111,9 +108,9 @@ class XLSRowSet(RowSet):
                 try:
                     row.append(XLSCell.from_xlrdcell(cell, self.sheet, colnum, rownum))
                 except InvalidDateError:
-                    raise ValueError("Invalid date at '%s':%d,%d" % (
-                        self.sheet.name, colnum+1, rownum+1))
+                    raise ValueError("Invalid date at '%s':%d,%d" % (self.sheet.name, colnum + 1, rownum + 1))
             yield row
+
 
 class XLSCell(Cell):
     @staticmethod
@@ -123,8 +120,7 @@ class XLSCell(Cell):
         if cell_type == DateType(None):
             if value == 0:
                 raise InvalidDateError
-            year, month, day, hour, minute, second = \
-                xlrd.xldate_as_tuple(value, sheet.book.datemode)
+            year, month, day, hour, minute, second = xlrd.xldate_as_tuple(value, sheet.book.datemode)
             if (year, month, day) == (0, 0, 0):
                 value = time(hour, minute, second)
             else:
@@ -143,10 +139,25 @@ class XLSCell(Cell):
     def properties(self):
         return XLSProperties(self)
 
+
 class XLSProperties(CoreProperties):
-    KEYS = ['bold', 'size', 'italic', 'font_name', 'strikeout', 'underline',
-            'font_colour', 'background_colour', 'any_border', 'all_border',
-            'richtext', 'blank', 'a_date', 'formatting_string']
+    KEYS = [
+        "bold",
+        "size",
+        "italic",
+        "font_name",
+        "strikeout",
+        "underline",
+        "font_colour",
+        "background_colour",
+        "any_border",
+        "all_border",
+        "richtext",
+        "blank",
+        "a_date",
+        "formatting_string",
+    ]
+
     def __init__(self, cell):
         self.cell = cell
         self.merged = {}
@@ -171,7 +182,7 @@ class XLSProperties(CoreProperties):
 
     def raw_span(self, always=False):
         """return the bounding box of the cells it's part of.
-         https://secure.simplistix.co.uk/svn/xlrd/trunk/xlrd/doc/xlrd.html?p=4966#sheet.Sheet.merged_cells-attribute"""
+        https://secure.simplistix.co.uk/svn/xlrd/trunk/xlrd/doc/xlrd.html?p=4966#sheet.Sheet.merged_cells-attribute"""
         row, col = self.cell.xlrd_pos
         for box in self.cell.sheet.merged_cells:
             rlo, rhi, clo, chi = box
@@ -224,23 +235,20 @@ class XLSProperties(CoreProperties):
 
     def get_font_colour(self):
         # TODO
-        return self.font.color_index ## more lookup required
+        return self.font.color_index  ## more lookup required
 
     def get_blank(self):
         """Note that cells might not exist at all.
-           Behaviour for spanned cells might be complicated: hence this function"""
-        return self.cell.value == ''
+        Behaviour for spanned cells might be complicated: hence this function"""
+        return self.cell.value == ""
 
     def get_background_colour(self):
-        return self.xf.background.background_color_index ## more lookup required
+        return self.xf.background.background_color_index  ## more lookup required
 
     def get_any_border(self):
         b = self.xf.border
-        return b.top_line_style > 0 or b.bottom_line_style > 0 or \
-               b.left_line_style > 0 or b.right_line_style > 0
+        return b.top_line_style > 0 or b.bottom_line_style > 0 or b.left_line_style > 0 or b.right_line_style > 0
 
     def get_all_border(self):
         b = self.xf.border
-        return b.top_line_style > 0 and b.bottom_line_style > 0 and \
-               b.left_line_style > 0 and b.right_line_style > 0
-
+        return b.top_line_style > 0 and b.bottom_line_style > 0 and b.left_line_style > 0 and b.right_line_style > 0

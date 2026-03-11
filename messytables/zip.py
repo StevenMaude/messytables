@@ -1,41 +1,47 @@
 import zipfile
 
-import messytables
+from messytables.core import TableSet
+from messytables.error import ReadError
 
 
-class ZIPTableSet(messytables.TableSet):
-    """ Reads TableSets from inside a ZIP file """
+class ZIPTableSet(TableSet):
+    """Reads TableSets from inside a ZIP file"""
 
     def __init__(self, fileobj, **kw):
         """
         On error it will raise messytables.ReadError.
         """
+        # Import here to avoid circular imports
+        from messytables.any import any_tableset
+
         tables = []
         found = []
-        z = zipfile.ZipFile(fileobj, 'r')
+        z = zipfile.ZipFile(fileobj, "r")
         try:
             for f in z.infolist():
                 ext = None
 
                 # ignore metadata folders added by Mac OS X
-                if '__MACOSX' in f.filename:
+                if "__MACOSX" in f.filename:
                     continue
 
                 if "." in f.filename:
-                    ext = f.filename[f.filename.rindex(".") + 1:]
+                    ext = f.filename[f.filename.rindex(".") + 1 :]
 
                 try:
-                    filetables = messytables.any.any_tableset(
-                        z.open(f), extension=ext, **kw)
+                    filetables = any_tableset(z.open(f), extension=ext, **kw)
                 except ValueError as e:
-                    found.append(f.filename + ": " + e.message)
+                    found.append(f.filename + ": " + str(e))
                     continue
 
                 tables.extend(filetables.tables)
 
             if len(tables) == 0:
-                raise messytables.ReadError('''ZIP file has no recognized
-                    tables (%s).''' % ', '.join(found))
+                raise ReadError(
+                    """ZIP file has no recognized
+                    tables (%s)."""
+                    % ", ".join(found)
+                )
         finally:
             z.close()
 

@@ -3,14 +3,18 @@ class MessytablesError(Exception):
 
 
 class ReadError(MessytablesError):
-    '''Error reading the file/stream in terms of the expected format.'''
+    """Error reading the file/stream in terms of the expected format."""
+
     pass
 
 
 class TableError(MessytablesError, LookupError):
     """Couldn't identify correct table."""
+
     pass
+
 
 class NoSuchPropertyError(MessytablesError, KeyError):
     """The requested property doesn't exist"""
+
     pass
